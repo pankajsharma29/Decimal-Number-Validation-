@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>JavaScript Floating point number validation</h2>
+<div>
+  <label>Enter Value : </label> 
+  <input 
+    type="text" 
+    id="inputVal" 
+    decimal-places="5" 
+    max-value="999999" 
+    min-value="0" 
+    onkeydown="onValidate(event)" 
+    onblur="updateValue(event)" />  
+</div>
+
+
+<script>
+function onValidate(e) {
+	var value = document.getElementById("inputVal").value,
+        caretPosition = document.getElementById("inputVal").selectionStart,
+        decimalPlaces = document.getElementById("inputVal").getAttribute("decimal-places"),
+        maxValue = document.getElementById("inputVal").getAttribute("max-value"),
+        minValue = document.getElementById("inputVal").getAttribute("min-value"),
+        allowedKeys = [46, 8, 9, 27, 13, 110, 123],
+        keyPressed,
+        newValue,
+        decimalValueCheck;
+        
+        // Convert the num pad decimal to regular decimal keyCode.
+        if (e.keyCode === 110) {
+            e.keyCode = 190;
+        }
+
+        // Allowed keys Function
+        function allowedKeyPress(keyCode) {
+            var result = allowedKeys.includes(keyCode);
+            return result;
+        };
+
+    		// Allow: backspace, delete, tab, escape, enter, . and F12
+        if (allowedKeyPress(e.keyCode) ||
+            // Allow: Ctrl+A
+            (e.keyCode === 65 && e.ctrlKey === true) ||
+            // Allow: home, end, left, right
+            (e.keyCode >= 35 && e.keyCode <= 39) ||
+            // Allow : Ctrl+V
+            (e.keyCode === 86 && e.ctrlKey === true)) {
+            // let it happen, don't do anything
+            return;
+        }
+            
+        // Ensure that it is a number and stop the keypress
+        if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105) && e.keyCode !== 190) {
+            console.log('prevent default if in case its not a number');
+            e.preventDefault();
+            return;
+        }
+
+        //key code from 96 to 105 correspond to characters: 'a b c d e f g h i' instead of '0 1 2 3 4 5 6 7 8 9'
+        //Modified the key code so that pressing numpad keys return numeric characters
+        if (e.keyCode >= 96 && e.keyCode <= 105) {
+            keyPressed = String.fromCharCode(e.keyCode - 48).replace(/\s+/g, '');
+        } else if (e.keyCode === 190) {
+            keyPressed = ".";
+        } else {
+            keyPressed = String.fromCharCode(e.keyCode).replace(/\s+/g, '');
+        }
+
+        if (e.keyCode === 190 && (value.indexOf('.') > -1 )) {
+            var startPos = document.getElementById("inputVal").selectionStart,
+            endPos = document.getElementById("inputVal").selectionEnd;
+            if (value.substring(startPos, endPos) !== value){
+                //Don't allow 2nd decimal if everything is not selected
+                e.preventDefault();
+                return;
+            }
+        }
+
+        //Make sure the new value will not exceed the maxValue
+        if (keyPressed === '.' || !isNaN(parseInt(keyPressed, 10))) {
+            //If the field value is selected, no need to append any value
+            if (caretPosition.begin === 0 &&
+                caretPosition.end === value.toString().length) {
+                value = "";
+            }
+
+            newValue = createNewValue(value, caretPosition, keyPressed);
+            /*for maximum decimal places allowed check,newValue should be stored
+              so tha along with all expected scenario,another scenario when we have 0s after maximum decimal places
+              have been occupied, can be evaluated */
+            decimalValueCheck = newValue;
+            newValue = parseFloat(newValue);
+
+            if (newValue > maxValue) {
+                e.preventDefault();
+                return;
+            }
+            if (minValue && newValue < minValue) {
+                e.preventDefault();
+                return;
+            }
+        }
+
+        //Make sure digits after decimal point don't exceed decimalPlaces
+        decimalPlaces = parseInt(decimalPlaces, 10);
+        if (decimalPlaces) {
+            if (decimalValueCheck && decimalValueCheck.toString().replace(/^-?\d*\.?|/g, '').length > decimalPlaces) {
+                console.log('decimal values more than decimals places not allowed');
+                e.preventDefault();
+                return;
+            }
+            allowedKeys.push(190);
+        } else if (e.keyCode === 190) { 
+        	//decimals not allowed
+            console.log('decimal places not allowed');
+            e.preventDefault();
+            return;
+        }
+
+
+        function createNewValue (value, caretPosition, keyPressed) {
+            var newValue;
+            newValue = value.substr(0, caretPosition) + keyPressed + value.substr(caretPosition);
+            newValue = newValue.replace(/,/g, '');
+
+            return newValue;
+        };
+}
+
+function updateValue(e) {
+    var val = e.target.value;
+    val = val.toString();
+    // Remove spaces, and Remove leading zeros.
+    val = val.replace(/\s+/g, '').replace(/^0+(?=[0-9])/, '');
+    // Remove characters except dot and comma
+    val = val.replace(/[^0-9\,.]+/g,'');
+
+    var decimalPlaces = document.getElementById("inputVal").getAttribute('decimal-places');
+    decimalPlaces = decimalPlaces ? parseInt(decimalPlaces, 10) : 0;
+    return formatDecimal(val, decimalPlaces);
+}
+
+function formatDecimal (val, decimals) {
+    if (val) {
+        val = val.toString().replace(/,/g, '');
+        val = val ? parseFloat(val) : 0;
+        // Default to 2 decimals
+        decimals = (decimals === null || decimals === undefined) ? 2 : decimals; 
+
+        // To round it based on the number of decimals passed in.
+        var parts = val.toFixed(decimals).split("."),
+            returnVal = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+        if (parts.length > 1) {
+            var precision = parts[1].replace(/0+$/g, "") || "0",
+                number = parts[0] + "." + precision;
+
+            // Set the min decimal places to 2.
+            if (precision.length < 2 && decimals >= 2) {
+                number = parseFloat(number).toFixed(2).split(".");
+                returnVal = returnVal + "." + number[1];
+            } else {
+                returnVal = returnVal + "." + precision;
+            }
+        }
+        return document.getElementById("inputVal").value = returnVal;
+    }
+}
+            
+</script>
+
+</body>
+</html>
